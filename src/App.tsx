@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import { useLlm } from './hooks/useLlm'
+import { useTextToSpeech } from './hooks/useTextToSpeech'
 
 interface Message {
   id: string;
@@ -15,6 +16,11 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { askToLLM } = useLlm();
+  const { speak, isSpeaking, stop, isSupported } = useTextToSpeech({
+    rate: 0.9,
+    pitch: 1.1,
+    volume: 1
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -72,8 +78,23 @@ function App() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-800">Chat with AI Bard</h1>
-        <p className="text-sm text-gray-600">Ask me anything and I'll respond as a bard!</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Chat with AI Bard</h1>
+            <p className="text-sm text-gray-600">Ask me anything and I'll respond as a bard!</p>
+          </div>
+          {isSupported && isSpeaking && (
+            <button
+              onClick={stop}
+              className="flex items-center space-x-2 px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+              </svg>
+              <span>Stop Speaking</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages Container */}
@@ -100,12 +121,34 @@ function App() {
                   : 'bg-white text-gray-800 shadow-sm border'
               }`}
             >
-              <p className="text-sm">{message.text}</p>
-              <p className={`text-xs mt-1 ${
-                message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
-              }`}>
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm">{message.text}</p>
+                  <p className={`text-xs mt-1 ${
+                    message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  }`}>
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                {message.sender === 'assistant' && isSupported && (
+                  <button
+                    onClick={() => isSpeaking ? stop() : speak(message.text)}
+                    className="ml-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                    title={isSpeaking ? "Stop speaking" : "Read aloud"}
+                  >
+                    {isSpeaking ? (
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.816L4.073 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.073l4.31-3.816zm4.75 2.65a.75.75 0 011.06.086A6 6 0 0118 10a6 6 0 01-2.807 5.172.75.75 0 11-.886-1.214A4.5 4.5 0 0016.5 10a4.5 4.5 0 00-2.193-3.858.75.75 0 01.086-1.06z" clipRule="evenodd" />
+                        <path d="M12.657 6.343a.75.75 0 11.686 1.314A2.5 2.5 0 0114.5 10a2.5 2.5 0 01-1.157 2.343.75.75 0 11-.686 1.314A4 4 0 0016 10a4 4 0 00-3.343-3.657z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
